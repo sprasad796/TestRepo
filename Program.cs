@@ -66,4 +66,31 @@ return await Deployment.RunAsync( () => {
             .Spec
             .Apply( s => s.Provider.Fake.Data )
     );
+    
+    // it also happens with built-in k8s objects!
+    
+    var testSvc = new Service( "svc", new ServiceArgs {
+        Spec = new ServiceSpecArgs {
+            Selector = {
+                { "foo", "bar" }
+            }
+        }
+    }, new CustomResourceOptions { Provider = k8sProvider } );
+    
+    // uncomment the below lines to get error: Preview failed: resource 'crd-test/svc-0be05419' does not exist
+    // when running `pulumi up`
+    
+    // var brokenRead = testSvc.Metadata.Apply( s => 
+    //     Service.Get( "svc-read", $"{s.Namespace}/{s.Name}", new CustomResourceOptions { Provider = k8sProvider } )
+    //         .Spec
+    //         .Apply( s => s.Selector )
+    // );
+    
+    // this works as expected:
+    var svcTaintedMetadata = Output.Tuple( secretStore.Metadata, testSvc.Id ).Apply( args => args.Item1 );
+    var svcWorkingRead = svcTaintedMetadata.Apply( s => 
+        Service.Get( "svc-read", $"{s.Namespace}/{s.Name}", new CustomResourceOptions { Provider = k8sProvider } )
+            .Spec
+            .Apply( s => s.Selector )
+    );
 } );
