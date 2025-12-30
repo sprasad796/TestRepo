@@ -1,0 +1,20 @@
+[*.cs]
+csharp_new_line_before_open_brace = none
+csharp_new_line_before_else = false
+csharp_new_line_before_catch = false
+csharp_new_line_before_finally = false
+csharp_space_between_parentheses = control_flow_statements, expressions
+csharp_space_between_square_brackets = true
+csharp_space_between_method_declaration_name_and_open_parenthesis = true
+csharp_space_between_method_declaration_parameter_list_parentheses = true
+csharp_space_between_method_call_parameter_list_parentheses = true
+csharp_space_after_keywords_in_control_flow_statements = false
+dotnet_style_require_accessibility_modifiers = omit_if_default
+
+
+dotnet_diagnostic.IDE1006.severity = none
+dotnet_diagnostic.CS8618.severity = none
+
+# dotnet_naming_symbols.public_symbols.applicable_kinds = method,delegate
+# dotnet_naming_rule.public_members_must_be_capitalized.symbols  = public_symbols
+# dotnet_naming_rule.public_members_must_be_capitalized.severity = none
