@@ -1,4 +1,4 @@
-name: crd-bug-repro
+name: k8-helm-chart3-release
 description: A minimal Kubernetes C# Pulumi program
 runtime: dotnet
 config:

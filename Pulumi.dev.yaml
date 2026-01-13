@@ -6,7 +6,7 @@ spec:
   provider:
     pulumi:
       organization: swati796
-      project: crd-bug-repro
+      project: k8-helm-chart3-release
       environment: dev
       accessToken:
         secretRef:
