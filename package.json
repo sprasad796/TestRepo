@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@pulumi/fastly": "^11.3.0",
+    "@pulumi/kubernetes": "^4.24.1"
+  }
+}

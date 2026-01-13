@@ -1,40 +1,48 @@
 ﻿using Pulumi;
+using Pulumi.Kubernetes.ApiExtensions;
 using Pulumi.Kubernetes.Types.Inputs.Core.V1;
 using Pulumi.Kubernetes.Types.Inputs.Apps.V1;
 using Pulumi.Kubernetes.Types.Inputs.Meta.V1;
-using System.Collections.Generic;
 using Pulumi.Crds.ExternalSecrets;
 using Pulumi.Kubernetes.Helm.V3;
 using Pulumi.Kubernetes.Types.Inputs.Helm.V3;
 using Kubernetes = Pulumi.Kubernetes;
+using System.Collections.Generic;
 using Pulumi.Kubernetes.Core.V1;
 using Pulumi.Crds.ExternalSecrets.V1;
 using Pulumi.Kubernetes.Types.Inputs.ExternalSecrets.V1;
 using Pulumi.Utilities;
 
 return await Deployment.RunAsync( () => {
-    const string ns = "crd-test";
+    //const string ns = "crd-test";
+    //const string sn = "secret-store-43d73c75";
+    const string ns = "external-secrets-system";
     
     var k8sProvider = new Kubernetes.Provider( "test-provider", new Kubernetes.ProviderArgs {
         Namespace = ns
     }, new CustomResourceOptions { } );
 
-    _ = new Namespace( "test-namespace", new NamespaceArgs {
+
+    var ns2 = new Kubernetes.Core.V1.Namespace( "external-secrets-ns", new(){
         Metadata = new ObjectMetaArgs {
             Name = ns,
         }
-    }, new CustomResourceOptions { Provider = k8sProvider } );
+    });
 
-    var esOperator = new Release( "external-secrets-operator", new ReleaseArgs {
-        Name = "external-secrets",
+    // Install External Secrets Operator
+    var externalSecretsOperator = new Release("external-secrets-operator", new ReleaseArgs
+    {
         Chart = "external-secrets",
-        Version = "1.2.0",
-        RepositoryOpts = new RepositoryOptsArgs {
+        SkipCrds = true,
+        RepositoryOpts = new RepositoryOptsArgs
+        {
             Repo = "https://charts.external-secrets.io"
-        }
-    }, new CustomResourceOptions { Provider = k8sProvider } );
+        },
+        Namespace = ns2.Metadata.Apply(m => m.Name),
+    });
 
-    var secretStore = new SecretStore( "secret-store", new SecretStoreArgs {
+    var secretStore = new SecretStore( "secret-store",   
+      new SecretStoreArgs {
         Spec = new SecretStoreSpecArgs {
             Provider = new ProviderArgs {
                 Fake = new FakeProviderArgs {
@@ -47,50 +55,31 @@ return await Deployment.RunAsync( () => {
                     ]
                 },
             }
+        },
+        Metadata = new ObjectMetaArgs {
+            Namespace = ns2.Metadata.Apply(m => m.Name),
         }
-    }, new CustomResourceOptions { Provider = k8sProvider, IgnoreChanges = [ "status" ] } );
+    }, 
+    new CustomResourceOptions { 
+        DependsOn={ externalSecretsOperator }
+    }
+  );
     
-    // uncomment the below lines to get error: Preview failed: resource 'crd-test/secret-store-10e7357d' does not exist
-    // when running `pulumi up`
-    
-    // var brokenRead = secretStore.Metadata.Apply( s => 
-    //     SecretStore.Get( "secret-store-read", $"{s.Namespace}/{s.Name}", new CustomResourceOptions { Provider = k8sProvider } )
-    //         .Spec
-    //         .Apply( s => s.Provider.Fake.Data )
-    // );
-    
-    // this works as expected:
-    var taintedMetadata = Output.Tuple( secretStore.Metadata, secretStore.Id ).Apply( args => args.Item1 );
-    var workingRead = taintedMetadata.Apply( s => 
-        SecretStore.Get( "secret-store-read", $"{s.Namespace}/{s.Name}", new CustomResourceOptions { Provider = k8sProvider } )
-            .Spec
-            .Apply( s => s.Provider.Fake.Data )
-    );
-    
-    // it also happens with built-in k8s objects!
-    
-    var testSvc = new Service( "svc", new ServiceArgs {
-        Spec = new ServiceSpecArgs {
-            Selector = {
-                { "foo", "bar" }
-            }
+  var workingRead = SecretStore.Get("secret-store-get", 
+                                    secretStore.Id,
+                                    new CustomResourceOptions { 
+                                       Provider = k8sProvider,
+                                       DependsOn = secretStore 
+                                    } 
+                     );
+
+   var secretIdOutput = secretStore.Id.Apply( x => { return string.Format($"{x}");} );
+   secretStore.Id.Apply( id => { 
+         Pulumi.Log.Debug("Debug mode");
+         Pulumi.Log.Debug("Hidden by deafult");
+         Pulumi.Log.Info($"Created SecretStore with ID : {id}");
+         return id;
         }
-    }, new CustomResourceOptions { Provider = k8sProvider } );
-    
-    // uncomment the below lines to get error: Preview failed: resource 'crd-test/svc-0be05419' does not exist
-    // when running `pulumi up`
-    
-    // var brokenRead = testSvc.Metadata.Apply( s => 
-    //     Service.Get( "svc-read", $"{s.Namespace}/{s.Name}", new CustomResourceOptions { Provider = k8sProvider } )
-    //         .Spec
-    //         .Apply( s => s.Selector )
-    // );
-    
-    // this works as expected:
-    var svcTaintedMetadata = Output.Tuple( secretStore.Metadata, testSvc.Id ).Apply( args => args.Item1 );
-    var svcWorkingRead = svcTaintedMetadata.Apply( s => 
-        Service.Get( "svc-read", $"{s.Namespace}/{s.Name}", new CustomResourceOptions { Provider = k8sProvider } )
-            .Spec
-            .Apply( s => s.Selector )
-    );
+   );
+
 } );

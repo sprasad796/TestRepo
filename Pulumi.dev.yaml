@@ -1,1 +1,13 @@
-encryptionsalt: v1:Iuntr3XImTk=:v1:+4dPzhJD9hQ8HImH:IXO9XYslwjVKDUnFh293nsaCMzhr6g==
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: secret-store
+spec:
+  provider:
+    pulumi:
+      organization: swati796
+      project: crd-bug-repro
+      environment: dev
+      accessToken:
+        secretRef:
+          key: apiKey
