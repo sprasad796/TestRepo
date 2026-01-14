@@ -11,3 +11,5 @@ spec:
       accessToken:
         secretRef:
           key: apiKey
+environment:
+  - crd-bug-repo/dev
