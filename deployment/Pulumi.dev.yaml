@@ -1,0 +1,15 @@
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: secret-store
+spec:
+  provider:
+    pulumi:
+      organization: swati796
+      project: k8-helm-chart3-release
+      environment: dev
+      accessToken:
+        secretRef:
+          key: apiKey
+environment:
+  - crd-bug-repo/dev
